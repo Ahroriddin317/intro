@@ -4,21 +4,36 @@ const http = require('http');
 
 const port = 9999;
 const statusNotFound = 404;
-const statusBadRequest = 404;
+const statusBadRequest = 400;
 const statusOk = 200;
 const posts = [];
-const nextId = 0;
+let nextId = 1;
+
+const sendResponse = (response, {status = statusOk, headers = {}, body = null}) => {
+  Object.entries(headers).forEach(([key, value]) => {
+    response.setHeader(key, value);
+  });
+  response.writeHead(status);
+  response.end(body);
+}
+
+const sendJSON = (response, body) => {
+  sendResponse( response, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+}
 
 const methods = new Map();
 methods.set('/posts.get', ({ response }) => {
-  response.writeHead(statusOk, {'Content-Type': 'application/json'});
-  response.end(JSON.stringify(posts));
+  sendJSON(response, posts);
 });
 methods.set('/posts.getById', (request, response) => {});
-methods.set('/posts.post', ({request, searchParams}) => {
+methods.set('/posts.post', ({response, searchParams}) => {
   if(!searchParams.has('content')) {
-    response.writeHead(statusBadRequest);
-    response.end();
+    sendResponse(response, { status: statusBadRequest});
     return;
   }
 
@@ -30,7 +45,7 @@ methods.set('/posts.post', ({request, searchParams}) => {
     created: Date.now(),
   };
 
-  post.unshift(post);
+  posts.unshift(post);
   response.writeHead(statusOk, {'Content-Type': 'application/json'});
   response.end(JSON.stringify(post))
 });
@@ -40,7 +55,7 @@ methods.set('/posts.delete', (request, response) => {});
 const server = http.createServer((request, response) => {
   const {pathname, searchParams} = new URL(request.url, `http://${request.headers.host}`);
 
-  const method = methods.get(pathName);
+  const method = methods.get(pathname);
   if (method === undefined) {
     response.writeHead(statusNotFound);
     response.end();
