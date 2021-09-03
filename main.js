@@ -6,7 +6,7 @@ const port = 9999;
 const statusNotFound = 404;
 const statusBadRequest = 400;
 const statusOk = 200;
-const posts = [];
+let posts = [];
 let nextId = 1;
 
 const sendResponse = (response, {status = statusOk, headers = {}, body = null}) => {
@@ -32,7 +32,7 @@ methods.set('/posts.get', ({ response }) => {
 });
 methods.set('/posts.getById', ({response, searchParams}) => {
   const id = searchParams.get('id');
-  if (!searchParams.has('id') || Number.isNaN(+id)) {
+  if (!id || Number.isNaN(+id)) {
     sendResponse(response, { status: statusBadRequest });
     return;
   }
@@ -43,12 +43,11 @@ methods.set('/posts.getById', ({response, searchParams}) => {
   typeof(post) !== 'undefined' ? sendJSON(response, post) : sendResponse(response, { status:statusNotFound });
 });
 methods.set('/posts.post', ({response, searchParams}) => {
-  if (!searchParams.has('content')) {
+  const content = searchParams.get('content');
+  if (!content) {
     sendResponse(response, { status: statusBadRequest});
     return;
   }
-
-  const content = searchParams.get('content');
 
   const post = {
     id: nextId++,
@@ -59,8 +58,38 @@ methods.set('/posts.post', ({response, searchParams}) => {
   posts.unshift(post);
   sendJSON(response, post);
 });
-methods.set('/posts.edit', () => {});
-methods.set('/posts.delete', () => {});
+methods.set('/posts.edit', ({response, searchParams}) => {
+  const id = searchParams.get('id');
+  const content = searchParams.get('content');
+  if (!id || !content || Number.isNaN(+id)) {
+    sendResponse(response, { status: statusBadRequest });
+    return;
+  }
+
+  posts = posts.map((item) => {
+    return item.id === +id ? {...item, content} : item;
+  });
+
+  const post = posts.find((item) => {
+    return item.id === +id;
+  });
+
+  typeof (post) !== 'undefined' ? sendJSON(response, post) : sendResponse(response, { status: statusNotFound });
+});
+methods.set('/posts.delete', ({response, searchParams}) => {
+  const id = searchParams.get('id');
+  if (!id || Number.isNaN(+id)) {
+    sendResponse(response, { status: statusBadRequest });
+    return;
+  }
+
+  const post = posts.find((item) => {
+    return item.id === +id;
+  });
+  const postIndex = posts.findIndex((item) => item.id === +id);
+  posts.splice(postIndex, 1);
+  typeof (post) !== 'undefined' ? sendJSON(response, post) : sendResponse(response, { status: statusNotFound });
+});
 
 const server = http.createServer((request, response) => {
   const {pathname, searchParams} = new URL(request.url, `http://${request.headers.host}`);
