@@ -30,7 +30,18 @@ const methods = new Map();
 methods.set('/posts.get', ({ response }) => {
   sendJSON(response, posts);
 });
-methods.set('/posts.getById', (request, response) => {});
+methods.set('/posts.getById', ({response, searchParams}) => {
+  const id = searchParams.get('id');
+  if (!searchParams.has('id') || Number.isNaN(+id)) {
+    sendResponse(response, { status: statusBadRequest });
+    return;
+  }
+
+  const post = posts.find((item) => {
+    return item.id === +id;
+  });
+  sendJSON(response, post);
+});
 methods.set('/posts.post', ({response, searchParams}) => {
   if(!searchParams.has('content')) {
     sendResponse(response, { status: statusBadRequest});
@@ -46,8 +57,7 @@ methods.set('/posts.post', ({response, searchParams}) => {
   };
 
   posts.unshift(post);
-  response.writeHead(statusOk, {'Content-Type': 'application/json'});
-  response.end(JSON.stringify(post))
+  sendJSON(response, post);
 });
 methods.set('/posts.edit', (request, response) => {});
 methods.set('/posts.delete', (request, response) => {});
