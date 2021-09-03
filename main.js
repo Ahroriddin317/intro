@@ -15,7 +15,7 @@ const sendResponse = (response, {status = statusOk, headers = {}, body = null}) 
   });
   response.writeHead(status);
   response.end(body);
-}
+};
 
 const sendJSON = (response, body) => {
   sendResponse( response, {
@@ -24,7 +24,7 @@ const sendJSON = (response, body) => {
     },
     body: JSON.stringify(body),
   });
-}
+};
 
 const methods = new Map();
 methods.set('/posts.get', ({ response }) => {
@@ -40,10 +40,10 @@ methods.set('/posts.getById', ({response, searchParams}) => {
   const post = posts.find((item) => {
     return item.id === +id;
   });
-  sendJSON(response, post);
+  typeof(post) !== 'undefined' ? sendJSON(response, post) : sendResponse(response, { status:statusNotFound });
 });
 methods.set('/posts.post', ({response, searchParams}) => {
-  if(!searchParams.has('content')) {
+  if (!searchParams.has('content')) {
     sendResponse(response, { status: statusBadRequest});
     return;
   }
@@ -59,8 +59,8 @@ methods.set('/posts.post', ({response, searchParams}) => {
   posts.unshift(post);
   sendJSON(response, post);
 });
-methods.set('/posts.edit', (request, response) => {});
-methods.set('/posts.delete', (request, response) => {});
+methods.set('/posts.edit', () => {});
+methods.set('/posts.delete', () => {});
 
 const server = http.createServer((request, response) => {
   const {pathname, searchParams} = new URL(request.url, `http://${request.headers.host}`);
